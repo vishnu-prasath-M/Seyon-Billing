@@ -1,0 +1,247 @@
+// Seyon Billing — Prisma Schema
+// Database: Neon PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String   @id @default(cuid())
+  name       String
+  username   String   @unique
+  password   String
+  role       Role     @default(COUNTER_USER)
+  isActive   Boolean  @default(true)
+  counterId  String
+  counter    Counter  @relation(fields: [counterId], references: [id])
+  quotations Quotation[]
+  bills      Bill[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+enum Role {
+  ADMIN
+  COUNTER_USER
+}
+
+model Counter {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  description String?
+  isActive    Boolean     @default(true)
+  users       User[]
+  quotations  Quotation[]
+  bills       Bill[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model CompanySettings {
+  id                  String   @id @default(cuid())
+  name                String   @default("Seyon UPVC")
+  logo                String?
+  address             String?
+  city                String?
+  state               String?
+  pincode             String?
+  phone               String?
+  email               String?
+  website             String?
+  gstin               String?
+  pan                 String?
+  bankName            String?
+  bankAccount         String?
+  bankIFSC            String?
+  bankBranch          String?
+  quotationPrefix     String   @default("QT")
+  quotationNextNumber Int      @default(1)
+  quotationTerms      String?  @db.Text
+  quotationValidity   Int      @default(30)
+  quotationSignature  String?
+  invoicePrefix       String   @default("INV")
+  invoiceNextNumber   Int      @default(1)
+  invoiceTerms        String?  @db.Text
+  invoiceSignature    String?
+  placeOfSupply       String?
+  stateCode           String?
+  updatedAt           DateTime @updatedAt
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  products  Product[]
+  createdAt DateTime  @default(now())
+}
+
+model Product {
+  id             String         @id @default(cuid())
+  name           String
+  code           String         @unique
+  categoryId     String?
+  category       Category?      @relation(fields: [categoryId], references: [id])
+  hsnSac         String?
+  unit           String         @default("Nos")
+  mrp            Decimal        @db.Decimal(10, 2)
+  sellingPrice   Decimal        @db.Decimal(10, 2)
+  gstPercent     Decimal        @db.Decimal(5, 2) @default(18)
+  stock          Int?
+  trackStock     Boolean        @default(false)
+  description    String?
+  imageUrl       String?
+  isActive       Boolean        @default(true)
+  quotationItems QuotationItem[]
+  billItems      BillItem[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model Customer {
+  id            String      @id @default(cuid())
+  name          String
+  phone         String?
+  email         String?
+  address       String?
+  city          String?
+  state         String?
+  pincode       String?
+  gstin         String?
+  placeOfSupply String?
+  isActive      Boolean     @default(true)
+  quotations    Quotation[]
+  bills         Bill[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model Quotation {
+  id               String          @id @default(cuid())
+  quotationNumber  String          @unique
+  customerId       String?
+  customer         Customer?       @relation(fields: [customerId], references: [id])
+  customerSnapshot Json
+  counterId        String
+  counter          Counter         @relation(fields: [counterId], references: [id])
+  createdById      String
+  createdBy        User            @relation(fields: [createdById], references: [id])
+  salesPerson      String?
+  placeOfSupply    String?
+  shipTo           String?
+  expiryDate       DateTime?
+  status           QuotationStatus @default(DRAFT)
+  items            QuotationItem[]
+  subtotal         Decimal         @db.Decimal(10, 2)
+  discountAmount   Decimal         @db.Decimal(10, 2) @default(0)
+  taxableAmount    Decimal         @db.Decimal(10, 2)
+  cgstAmount       Decimal         @db.Decimal(10, 2) @default(0)
+  sgstAmount       Decimal         @db.Decimal(10, 2) @default(0)
+  igstAmount       Decimal         @db.Decimal(10, 2) @default(0)
+  grandTotal       Decimal         @db.Decimal(10, 2)
+  notes            String?         @db.Text
+  convertedToBill  Bill?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+}
+
+enum QuotationStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  EXPIRED
+  CONVERTED
+  CANCELLED
+}
+
+model QuotationItem {
+  id              String    @id @default(cuid())
+  quotationId     String
+  quotation       Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  productId       String?
+  product         Product?  @relation(fields: [productId], references: [id])
+  productName     String
+  productCode     String
+  hsnSac          String?
+  unit            String
+  mrp             Decimal   @db.Decimal(10, 2)
+  rate            Decimal   @db.Decimal(10, 2)
+  gstPercent      Decimal   @db.Decimal(5, 2)
+  quantity        Decimal   @db.Decimal(10, 3)
+  discountPercent Decimal   @db.Decimal(5, 2)  @default(0)
+  discountAmount  Decimal   @db.Decimal(10, 2)  @default(0)
+  taxableAmount   Decimal   @db.Decimal(10, 2)
+  gstAmount       Decimal   @db.Decimal(10, 2)
+  cgstAmount      Decimal   @db.Decimal(10, 2)
+  sgstAmount      Decimal   @db.Decimal(10, 2)
+  igstAmount      Decimal   @db.Decimal(10, 2)
+  amount          Decimal   @db.Decimal(10, 2)
+  sortOrder       Int       @default(0)
+}
+
+model Bill {
+  id                       String     @id @default(cuid())
+  invoiceNumber            String     @unique
+  customerId               String?
+  customer                 Customer?  @relation(fields: [customerId], references: [id])
+  customerSnapshot         Json
+  counterId                String
+  counter                  Counter    @relation(fields: [counterId], references: [id])
+  createdById              String
+  createdBy                User       @relation(fields: [createdById], references: [id])
+  convertedFromQuotationId String?    @unique
+  convertedFromQuotation   Quotation? @relation(fields: [convertedFromQuotationId], references: [id])
+  salesPerson              String?
+  placeOfSupply            String?
+  invoiceDate              DateTime   @default(now())
+  dueDate                  DateTime?
+  status                   BillStatus @default(UNPAID)
+  items                    BillItem[]
+  subtotal                 Decimal    @db.Decimal(10, 2)
+  discountAmount           Decimal    @db.Decimal(10, 2) @default(0)
+  taxableAmount            Decimal    @db.Decimal(10, 2)
+  cgstAmount               Decimal    @db.Decimal(10, 2) @default(0)
+  sgstAmount               Decimal    @db.Decimal(10, 2) @default(0)
+  igstAmount               Decimal    @db.Decimal(10, 2) @default(0)
+  grandTotal               Decimal    @db.Decimal(10, 2)
+  amountPaid               Decimal    @db.Decimal(10, 2) @default(0)
+  notes                    String?    @db.Text
+  createdAt                DateTime   @default(now())
+  updatedAt                DateTime   @updatedAt
+}
+
+enum BillStatus {
+  UNPAID
+  PARTIAL
+  PAID
+  CANCELLED
+}
+
+model BillItem {
+  id              String   @id @default(cuid())
+  billId          String
+  bill            Bill     @relation(fields: [billId], references: [id], onDelete: Cascade)
+  productId       String?
+  product         Product? @relation(fields: [productId], references: [id])
+  productName     String
+  productCode     String
+  hsnSac          String?
+  unit            String
+  mrp             Decimal  @db.Decimal(10, 2)
+  rate            Decimal  @db.Decimal(10, 2)
+  gstPercent      Decimal  @db.Decimal(5, 2)
+  quantity        Decimal  @db.Decimal(10, 3)
+  discountPercent Decimal  @db.Decimal(5, 2)  @default(0)
+  discountAmount  Decimal  @db.Decimal(10, 2)  @default(0)
+  taxableAmount   Decimal  @db.Decimal(10, 2)
+  gstAmount       Decimal  @db.Decimal(10, 2)
+  cgstAmount      Decimal  @db.Decimal(10, 2)
+  sgstAmount      Decimal  @db.Decimal(10, 2)
+  igstAmount      Decimal  @db.Decimal(10, 2)
+  amount          Decimal  @db.Decimal(10, 2)
+  sortOrder       Int      @default(0)
+}
