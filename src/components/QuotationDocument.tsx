@@ -305,12 +305,12 @@ export default function QuotationDocument({ data }: { data: DocumentData }) {
           <thead>
             <tr className="border-b border-neutral-300 text-neutral-900 font-bold uppercase text-[9.5px]">
               <th className="py-2.5 px-1.5 text-left">ITEMS/SERVICES</th>
-              <th className="py-2.5 px-1 text-center w-20">HSN/SAC</th>
+              {totalTaxAmount > 0 && <th className="py-2.5 px-1 text-center w-20">HSN/SAC</th>}
               <th className="py-2.5 px-1 text-right w-16">QTY.</th>
               <th className="py-2.5 px-1 text-right w-18">MRP</th>
               <th className="py-2.5 px-1 text-right w-20">RATE</th>
               <th className="py-2.5 px-1 text-right w-18">DISC.</th>
-              <th className="py-2.5 px-1 text-right w-18">TAX</th>
+              {totalTaxAmount > 0 && <th className="py-2.5 px-1 text-right w-18">TAX</th>}
               <th className="py-2.5 px-1.5 text-right w-24">AMOUNT</th>
             </tr>
           </thead>
@@ -340,14 +340,16 @@ export default function QuotationDocument({ data }: { data: DocumentData }) {
                     )}
                   </td>
 
-                  {/* HSN/SAC */}
-                  <td className="py-3 px-1 text-center font-mono text-[10px] text-neutral-700">
-                    {item.hsnSac || "-"}
-                  </td>
+                  {/* HSN/SAC (Only if GST is active) */}
+                  {totalTaxAmount > 0 && (
+                    <td className="py-3 px-1 text-center font-mono text-[10px] text-neutral-700">
+                      {item.hsnSac || "-"}
+                    </td>
+                  )}
 
                   {/* Qty */}
                   <td className="py-3 px-1 text-right font-medium text-neutral-800 whitespace-nowrap">
-                    {formatNumber(item.quantity)} {item.unit || "PCS"}
+                    {formatNumber(item.quantity)} {item.unit || "Sq.Ft"}
                   </td>
 
                   {/* MRP */}
@@ -385,13 +387,15 @@ export default function QuotationDocument({ data }: { data: DocumentData }) {
                     )}
                   </td>
 
-                  {/* Tax */}
-                  <td className="py-3 px-1 text-right text-neutral-800 whitespace-nowrap">
-                    <div>{formatNumber(itemTaxAmount)}</div>
-                    <div className="text-[8.5px] text-neutral-500">
-                      ({item.gstPercent}%)
-                    </div>
-                  </td>
+                  {/* Tax (Only if GST is active) */}
+                  {totalTaxAmount > 0 && (
+                    <td className="py-3 px-1 text-right text-neutral-800 whitespace-nowrap">
+                      <div>{formatNumber(itemTaxAmount)}</div>
+                      <div className="text-[8.5px] text-neutral-500">
+                        ({item.gstPercent}%)
+                      </div>
+                    </td>
+                  )}
 
                   {/* Amount */}
                   <td className="py-3 px-1.5 text-right font-bold text-neutral-900 whitespace-nowrap">
@@ -410,7 +414,7 @@ export default function QuotationDocument({ data }: { data: DocumentData }) {
         <div className="flex items-center gap-5 text-right">
           <span className="w-16">{formatNumber(totalQuantity)}</span>
           <span className="w-18">₹ {formatNumber(totalDiscounts || data.discountAmount)}</span>
-          <span className="w-18">₹ {formatNumber(totalTaxAmount)}</span>
+          {totalTaxAmount > 0 && <span className="w-18">₹ {formatNumber(totalTaxAmount)}</span>}
           <span className="w-24">₹ {formatNumber(data.grandTotal)}</span>
         </div>
       </div>
@@ -461,33 +465,35 @@ export default function QuotationDocument({ data }: { data: DocumentData }) {
         <div className="col-span-12 sm:col-span-5 space-y-3">
           {/* Tax Breakdown */}
           <div className="space-y-1.5 text-[11px] border-b border-neutral-300 pb-2">
-            <div className="flex justify-between items-center text-neutral-700">
-              <span>Taxable Amount</span>
-              <span className="font-medium">₹ {formatNumber(data.taxableAmount)}</span>
-            </div>
-
             {totalTaxAmount > 0 ? (
-              !hasIgst ? (
-                <>
-                  <div className="flex justify-between items-center text-neutral-700">
-                    <span>CGST</span>
-                    <span className="font-medium">₹ {formatNumber(data.cgstAmount)}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-neutral-700">
-                    <span>SGST</span>
-                    <span className="font-medium">₹ {formatNumber(data.sgstAmount)}</span>
-                  </div>
-                </>
-              ) : (
+              <>
                 <div className="flex justify-between items-center text-neutral-700">
-                  <span>IGST</span>
-                  <span className="font-medium">₹ {formatNumber(data.igstAmount)}</span>
+                  <span>Taxable Amount</span>
+                  <span className="font-medium">₹ {formatNumber(data.taxableAmount)}</span>
                 </div>
-              )
+
+                {!hasIgst ? (
+                  <>
+                    <div className="flex justify-between items-center text-neutral-700">
+                      <span>CGST</span>
+                      <span className="font-medium">₹ {formatNumber(data.cgstAmount)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-neutral-700">
+                      <span>SGST</span>
+                      <span className="font-medium">₹ {formatNumber(data.sgstAmount)}</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex justify-between items-center text-neutral-700">
+                    <span>IGST</span>
+                    <span className="font-medium">₹ {formatNumber(data.igstAmount)}</span>
+                  </div>
+                )}
+              </>
             ) : (
-              <div className="flex justify-between items-center text-neutral-500">
-                <span>GST / Taxes</span>
-                <span className="font-medium">₹ 0.00</span>
+              <div className="flex justify-between items-center text-neutral-700">
+                <span>Items Subtotal</span>
+                <span className="font-medium">₹ {formatNumber(data.subtotal)}</span>
               </div>
             )}
           </div>

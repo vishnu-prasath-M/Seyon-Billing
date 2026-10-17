@@ -7,7 +7,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
-  const [activeTab, setActiveTab] = useState<"company" | "quotation" | "billing" | "counters">("company");
+  const [activeTab, setActiveTab] = useState<"company" | "quotation" | "billing">("company");
 
   const [settings, setSettings] = useState({
     companyName: "SEYON UPVC WINDOWS & DOORS",
@@ -34,19 +34,12 @@ export default function SettingsPage() {
       "1. Goods once sold will not be taken back or exchanged.\n2. 100% payment before load from warehouse.\n3. Transportation and site unloading excluded unless specified.\n4. 15 years warranty on UPVC profiles against discoloration.\n5. All disputes subject to local jurisdiction only.\n6. Interest @ 18% p.a. will be charged on overdue payments.",
   });
 
-  const [counters, setCounters] = useState<any[]>([]);
-
   useEffect(() => {
-    Promise.all([
-      fetch("/api/settings").then((r) => (r.ok ? r.json() : null)),
-      fetch("/api/auth/me").then((r) => (r.ok ? r.json() : null)),
-    ])
-      .then(([sData, meData]) => {
+    fetch("/api/settings")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((sData) => {
         if (sData?.settings) {
           setSettings((prev) => ({ ...prev, ...sData.settings }));
-        }
-        if (sData?.counters) {
-          setCounters(sData.counters);
         }
       })
       .catch(() => showToast("Error loading settings", "error"))
@@ -136,17 +129,6 @@ export default function SettingsPage() {
           }`}
         >
           Invoice & Bank Details
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab("counters")}
-          className={`pb-3 cursor-pointer transition-colors whitespace-nowrap ${
-            activeTab === "counters"
-              ? "text-[#087ea4] border-b-2 border-[#087ea4]"
-              : "text-slate-500 hover:text-slate-800"
-          }`}
-        >
-          Counters & Workstations
         </button>
       </div>
 
@@ -400,59 +382,15 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {/* Counters Tab */}
-        {activeTab === "counters" && (
-          <div className="bg-white border border-slate-200/90 rounded-xl p-6 space-y-4 text-xs shadow-xs">
-            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Assigned Billing Workstations</h2>
-            <p className="text-slate-500">
-              The company has multi-terminal billing support sharing live products and customers with individual workstation accountability.
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="border border-slate-200 rounded-xl p-5 bg-slate-50">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-bold text-slate-900 text-sm">Workstation A</span>
-                  <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                    ACTIVE
-                  </span>
-                </div>
-                <p className="text-slate-600 mb-3">Primary Billing Terminal</p>
-                <div className="text-[11.5px] text-slate-500 space-y-1">
-                  <div>Assigned Login: <strong className="text-slate-800">user1</strong></div>
-                  <div>Quotation Prefix: <strong>QT-</strong></div>
-                  <div>Bill Prefix: <strong>INV-</strong></div>
-                </div>
-              </div>
-
-              <div className="border border-slate-200 rounded-xl p-5 bg-slate-50">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-bold text-slate-900 text-sm">Workstation B</span>
-                  <span className="text-[10px] font-bold bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full border border-blue-200">
-                    ACTIVE
-                  </span>
-                </div>
-                <p className="text-slate-600 mb-3">Secondary Billing Terminal</p>
-                <div className="text-[11.5px] text-slate-500 space-y-1">
-                  <div>Assigned Login: <strong className="text-slate-800">user2</strong></div>
-                  <div>Quotation Prefix: <strong>QT-</strong></div>
-                  <div>Bill Prefix: <strong>INV-</strong></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab !== "counters" && (
-          <div className="flex justify-end pt-3">
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="px-6 py-2.5 bg-[#087ea4] text-white font-bold rounded-lg hover:bg-[#076b8b] disabled:opacity-50 cursor-pointer shadow-sm text-xs transition-all"
-            >
-              {isSaving ? "Saving Settings..." : "Save Company Settings"}
-            </button>
-          </div>
-        )}
+        <div className="flex justify-end pt-3">
+          <button
+            type="submit"
+            disabled={isSaving}
+            className="px-6 py-2.5 bg-[#087ea4] text-white font-bold rounded-lg hover:bg-[#076b8b] disabled:opacity-50 cursor-pointer shadow-sm text-xs transition-all"
+          >
+            {isSaving ? "Saving Settings..." : "Save Company Settings"}
+          </button>
+        </div>
       </form>
     </div>
   );

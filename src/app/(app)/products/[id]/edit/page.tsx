@@ -6,5 +6,5 @@ interface Props {
 
 export default async function EditProductPage({ params }: Props) {
   const { id } = await params;
-  return <ProductForm productId={id} />;
+  return <ProductForm productId={id} isEdit={true} />;
 }

@@ -21,12 +21,12 @@ interface ProductFormData {
 }
 
 const defaultForm: ProductFormData = {
-  name: "", code: "", categoryId: "", hsnSac: "", unit: "Nos",
-  mrp: "", sellingPrice: "", gstPercent: "18", description: "",
+  name: "", code: "", categoryId: "", hsnSac: "", unit: "Sq.Ft",
+  mrp: "", sellingPrice: "", gstPercent: "0", description: "",
   trackStock: false, stock: "", isActive: true,
 };
 
-const UNITS = ["Nos", "Pcs", "Kg", "Grm", "Mtr", "Sqft", "Sqm", "Ltr", "Set", "Pair", "Box", "Roll", "Sheet", "Rft"];
+const UNITS = ["Sq.Ft"];
 const GST_RATES = ["0", "5", "12", "18", "28"];
 
 interface ProductFormProps {
@@ -41,23 +41,62 @@ export default function ProductForm({ productId, initialData, isEdit }: ProductF
   const [categories, setCategories] = useState<Category[]>([]);
   const [newCategory, setNewCategory] = useState("");
   const [saving, setSaving] = useState(false);
+  const [loadingProduct, setLoadingProduct] = useState(!!productId);
   const [errors, setErrors] = useState<Partial<ProductFormData>>({});
   const { toast, showToast, hideToast } = useToast();
 
+  const effectiveIsEdit = isEdit || !!productId;
+
   useEffect(() => {
-    fetch("/api/categories").then(r => r.json()).then(d => setCategories(d.categories || []));
+    fetch("/api/categories")
+      .then((r) => r.json())
+      .then((d) => setCategories(d.categories || []))
+      .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    if (productId) {
+      setLoadingProduct(true);
+      fetch(`/api/products/${productId}`)
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.product) {
+            const p = d.product;
+            setForm({
+              name: p.name || "",
+              code: p.code || "",
+              categoryId: p.categoryId || "",
+              hsnSac: p.hsnSac || "",
+              unit: "Sq.Ft",
+              mrp: p.mrp != null ? String(p.mrp) : "",
+              sellingPrice: p.sellingPrice != null ? String(p.sellingPrice) : "",
+              gstPercent: p.gstPercent != null ? String(p.gstPercent) : "0",
+              description: p.description || "",
+              trackStock: !!p.trackStock,
+              stock: p.stock != null ? String(p.stock) : "",
+              isActive: p.isActive !== false,
+            });
+          }
+        })
+        .catch((err) => {
+          console.error("Error loading product:", err);
+          showToast("Failed to load product details.", "error");
+        })
+        .finally(() => setLoadingProduct(false));
+    }
+  }, [productId]);
+
   function setField(field: keyof ProductFormData, value: string | boolean) {
-    setForm(f => ({ ...f, [field]: value }));
-    setErrors(e => ({ ...e, [field]: undefined }));
+    setForm((f) => ({ ...f, [field]: value }));
+    setErrors((e) => ({ ...e, [field]: undefined }));
   }
 
   function validate() {
     const errs: Partial<ProductFormData> = {};
     if (!form.name.trim()) errs.name = "Product name is required";
     if (!form.code.trim()) errs.code = "Product code is required";
-    if (!form.sellingPrice || parseFloat(form.sellingPrice) <= 0) errs.sellingPrice = "Valid selling price required";
+    if (!form.sellingPrice || parseFloat(form.sellingPrice) <= 0)
+      errs.sellingPrice = "Valid selling price required";
     if (!form.mrp || parseFloat(form.mrp) <= 0) errs.mrp = "Valid MRP required";
     return errs;
   }
@@ -65,8 +104,11 @@ export default function ProductForm({ productId, initialData, isEdit }: ProductF
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const errs = validate();
-    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
-    
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs);
+      return;
+    }
+
     setSaving(true);
     try {
       let catId = form.categoryId;
@@ -88,18 +130,18 @@ export default function ProductForm({ productId, initialData, isEdit }: ProductF
         code: form.code.trim().toUpperCase(),
         categoryId: catId || null,
         hsnSac: form.hsnSac.trim() || null,
-        unit: form.unit,
+        unit: form.unit || "Sq.Ft",
         mrp: parseFloat(form.mrp),
         sellingPrice: parseFloat(form.sellingPrice),
-        gstPercent: parseFloat(form.gstPercent),
+        gstPercent: parseFloat(form.gstPercent || "0"),
         description: form.description.trim() || null,
         trackStock: form.trackStock,
         stock: form.trackStock && form.stock ? parseInt(form.stock) : null,
         isActive: form.isActive,
       };
 
-      const url = isEdit ? `/api/products/${productId}` : "/api/products";
-      const method = isEdit ? "PUT" : "POST";
+      const url = effectiveIsEdit ? `/api/products/${productId}` : "/api/products";
+      const method = effectiveIsEdit ? "PUT" : "POST";
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
@@ -109,8 +151,12 @@ export default function ProductForm({ productId, initialData, isEdit }: ProductF
       if (!res.ok) {
         showToast(data.error || "Failed to save product.", "error");
       } else {
-        showToast(isEdit ? "Product updated successfully." : "Product created successfully.");
-        setTimeout(() => router.push("/products"), 800);
+        showToast(
+          effectiveIsEdit
+            ? "Product updated successfully in database."
+            : "Product created successfully."
+        );
+        setTimeout(() => router.push("/products"), 700);
       }
     } catch {
       showToast("Network error. Please try again.", "error");
@@ -119,18 +165,27 @@ export default function ProductForm({ productId, initialData, isEdit }: ProductF
     }
   }
 
+  if (loadingProduct) {
+    return (
+      <div className="max-w-4xl mx-auto py-12 text-center text-slate-500 text-xs">
+        <div className="w-6 h-6 border-2 border-slate-300 border-t-[#087ea4] rounded-full animate-spin mx-auto mb-2" />
+        Loading product information...
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
-      
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-neutral-200">
         <div>
           <h1 className="text-xl font-bold text-neutral-900 tracking-tight">
-            {isEdit ? "Edit Product" : "Add New Product"}
+            {effectiveIsEdit ? "Edit Product" : "Add New Product"}
           </h1>
           <p className="text-xs text-neutral-500 mt-0.5">
-            Products are synchronized in real-time across all billing workstations
+            Products are synchronized in real-time across all billing workstations (Sold as Sq.Ft)
           </p>
         </div>
         <button

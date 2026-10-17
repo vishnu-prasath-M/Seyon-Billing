@@ -87,7 +87,7 @@ model Product {
   categoryId     String?
   category       Category?      @relation(fields: [categoryId], references: [id])
   hsnSac         String?
-  unit           String         @default("Nos")
+  unit           String         @default("Sq.Ft")
   mrp            Decimal        @db.Decimal(10, 2)
   sellingPrice   Decimal        @db.Decimal(10, 2)
   gstPercent     Decimal        @db.Decimal(5, 2) @default(18)

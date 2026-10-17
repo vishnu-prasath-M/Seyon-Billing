@@ -18,9 +18,9 @@ export default function BillEditor() {
   const [invoiceDate, setInvoiceDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
-  const [paymentMode, setPaymentMode] = useState<string>("CASH");
   const [paymentStatus, setPaymentStatus] = useState<"PAID" | "PARTIAL" | "UNPAID">("PAID");
   const [amountPaid, setAmountPaid] = useState<number>(0);
+  const [enableGst, setEnableGst] = useState<boolean>(false);
   const [isInterState, setIsInterState] = useState<boolean>(false);
   const [notes, setNotes] = useState<string>("");
   const [items, setItems] = useState<LineItem[]>([]);
@@ -28,9 +28,14 @@ export default function BillEditor() {
   const [showPreview, setShowPreview] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
+  const handleGstToggle = (checked: boolean) => {
+    setEnableGst(checked);
+    setItems((prev) => prev.map((item) => calcItem(item, isInterState, checked)));
+  };
+
   const handleInterStateChange = (checked: boolean) => {
     setIsInterState(checked);
-    setItems((prev) => prev.map((item) => calcItem(item, checked)));
+    setItems((prev) => prev.map((item) => calcItem(item, checked, enableGst)));
   };
 
   const handleCustomerChange = (c: Customer | null) => {
@@ -77,6 +82,9 @@ export default function BillEditor() {
             });
             if (q.notes) setNotes(q.notes);
 
+            const hasTax = (q.items || []).some((it: any) => Number(it.gstPercent) > 0);
+            if (hasTax) setEnableGst(true);
+
             const mappedItems: LineItem[] = (q.items || []).map((it: any) => ({
               _key: Math.random().toString(36).substring(2, 9),
               productId: it.productId || undefined,
@@ -84,13 +92,13 @@ export default function BillEditor() {
               productCode: it.productCode || "",
               hsnSac: it.hsnSac || "",
               quantity: Number(it.quantity),
-              unit: it.unit || "Nos",
+              unit: it.unit || "Sq.Ft",
               mrp: Number(it.mrp || 0),
               rate: Number(it.rate),
               discountPercent: Number(it.discountPercent || 0),
               discountAmount: Number(it.discountAmount || 0),
               taxableAmount: Number(it.taxableAmount),
-              gstPercent: Number(it.gstPercent),
+              gstPercent: hasTax ? Number(it.gstPercent) : 0,
               gstAmount: Number(it.gstAmount || 0),
               cgstAmount: Number(it.cgstAmount || 0),
               sgstAmount: Number(it.sgstAmount || 0),
@@ -104,7 +112,7 @@ export default function BillEditor() {
     }
   }, [fromQuotationId]);
 
-  const totals = computeTotals(items, isInterState);
+  const totals = computeTotals(items, isInterState, enableGst);
 
   // Sync amountPaid default when grandTotal changes if status is PAID
   useEffect(() => {
@@ -119,6 +127,7 @@ export default function BillEditor() {
     type: "invoice",
     number: invoiceNumber || "INV-DRAFT",
     date: invoiceDate,
+    status: paymentStatus,
     customer: {
       name: customer?.name || "Customer Name",
       phone: customer?.phone,
@@ -134,15 +143,15 @@ export default function BillEditor() {
       productCode: i.productCode,
       hsnSac: i.hsnSac,
       quantity: i.quantity,
-      unit: i.unit,
+      unit: i.unit || "Sq.Ft",
       mrp: i.mrp,
       rate: i.rate,
       discountPercent: i.discountPercent,
       taxableAmount: i.taxableAmount,
-      gstPercent: i.gstPercent,
-      cgstAmount: i.cgstAmount,
-      sgstAmount: i.sgstAmount,
-      igstAmount: i.igstAmount,
+      gstPercent: enableGst ? i.gstPercent : 0,
+      cgstAmount: enableGst ? i.cgstAmount : 0,
+      sgstAmount: enableGst ? i.sgstAmount : 0,
+      igstAmount: enableGst ? i.igstAmount : 0,
       totalAmount: i.amount,
     })),
     subtotal: totals.subtotal,
@@ -158,11 +167,11 @@ export default function BillEditor() {
 
   const handleSaveBill = async () => {
     if (!customer?.name) {
-      showToast("Please enter customer name or select a customer", "error");
+      showToast("Please enter customer name", "error");
       return;
     }
     if (items.length === 0) {
-      showToast("Please add at least one line item to the bill", "error");
+      showToast("Please add at least one product", "error");
       return;
     }
 
@@ -173,40 +182,35 @@ export default function BillEditor() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customerId: customer.id || null,
-          customerSnapshot: {
-            name: customer.name,
-            phone: customer.phone,
-            email: customer.email,
-            address: customer.address,
-            city: customer.city,
-            state: customer.state,
-            gstin: customer.gstin,
-            placeOfSupply: customer.placeOfSupply,
-          },
-          invoiceDate: new Date(invoiceDate).toISOString(),
-          paymentMode: paymentMode,
-          status: paymentStatus,
-          amountPaid: Number(amountPaid),
+          customerName: customer.name,
+          customerPhone: customer.phone,
+          customerEmail: customer.email,
+          customerAddress: customer.address,
+          customerGstin: customer.gstin,
           placeOfSupply: customer.placeOfSupply || "33-Tamil Nadu",
-          convertedFromQuotationId: fromQuotationId || null,
-          notes: notes || null,
+          customerSnapshot: customer,
+          invoiceDate: new Date(invoiceDate).toISOString(),
+          paymentMode: "CASH",
+          status: paymentStatus,
+          amountPaid: paymentStatus === "PAID" ? totals.grandTotal : amountPaid,
+          notes: notes,
           items: items.map((i, idx) => ({
             productId: i.productId || null,
             productName: i.productName,
-            productCode: i.productCode,
-            hsnSac: i.hsnSac,
+            productCode: i.productCode || "",
+            hsnSac: i.hsnSac || "",
             quantity: i.quantity,
-            unit: i.unit,
+            unit: i.unit || "Sq.Ft",
             mrp: i.mrp,
             rate: i.rate,
             discountPercent: i.discountPercent,
             discountAmount: i.discountAmount,
             taxableAmount: i.taxableAmount,
-            gstPercent: i.gstPercent,
-            gstAmount: i.gstAmount,
-            cgstAmount: i.cgstAmount,
-            sgstAmount: i.sgstAmount,
-            igstAmount: i.igstAmount,
+            gstPercent: enableGst ? i.gstPercent : 0,
+            gstAmount: enableGst ? i.gstAmount : 0,
+            cgstAmount: enableGst ? i.cgstAmount : 0,
+            sgstAmount: enableGst ? i.sgstAmount : 0,
+            igstAmount: enableGst ? i.igstAmount : 0,
             amount: i.amount,
             sortOrder: idx,
           })),
@@ -284,8 +288,8 @@ export default function BillEditor() {
         </div>
       )}
 
-      {/* Invoice Meta Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-5 bg-white border border-slate-200/90 rounded-xl text-xs shadow-xs">
+      {/* Invoice Meta Row with GST ON/OFF Slider Button */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-5 bg-white border border-slate-200/90 rounded-xl text-xs shadow-xs items-center">
         <div>
           <label className="block text-slate-700 font-semibold mb-1.5">Invoice Number</label>
           <input
@@ -295,6 +299,7 @@ export default function BillEditor() {
             className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-slate-700 font-mono font-bold"
           />
         </div>
+
         <div>
           <label className="block text-slate-700 font-semibold mb-1.5">Invoice Date</label>
           <input
@@ -304,21 +309,41 @@ export default function BillEditor() {
             className="w-full px-3 py-2 border border-slate-300 rounded-md text-slate-800 focus:border-[#087ea4] focus:ring-1 focus:ring-[#087ea4] focus:outline-none"
           />
         </div>
+
+        {/* GST On / Off Slider Switch with Smooth Transition */}
         <div>
-          <label className="block text-slate-700 font-semibold mb-1.5">Payment Mode</label>
-          <select
-            value={paymentMode}
-            onChange={(e) => setPaymentMode(e.target.value)}
-            className="w-full px-3 py-2 border border-slate-300 rounded-md text-slate-800 bg-white focus:border-[#087ea4] focus:ring-1 focus:ring-[#087ea4] focus:outline-none"
-          >
-            <option value="CASH">Cash</option>
-            <option value="UPI">UPI / GPay / PhonePe</option>
-            <option value="CARD">Credit / Debit Card</option>
-            <option value="BANK_TRANSFER">Bank Transfer / NEFT</option>
-            <option value="CHEQUE">Cheque</option>
-            <option value="CREDIT">Credit (To Pay Later)</option>
-          </select>
+          <label className="block text-slate-700 font-semibold mb-1.5">GST Calculation</label>
+          <div className="flex items-center justify-between px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-md">
+            <span className="font-bold text-xs flex items-center gap-1.5">
+              <span
+                className={`w-2 h-2 rounded-full transition-colors ${
+                  enableGst ? "bg-emerald-500" : "bg-slate-400"
+                }`}
+              />
+              <span className={enableGst ? "text-[#087ea4] font-black" : "text-slate-600"}>
+                {enableGst ? "GST ON (18%)" : "GST OFF (0%)"}
+              </span>
+            </span>
+
+            {/* Slider Switch */}
+            <button
+              type="button"
+              role="switch"
+              aria-checked={enableGst}
+              onClick={() => handleGstToggle(!enableGst)}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-300 ease-in-out focus:outline-none ${
+                enableGst ? "bg-[#087ea4]" : "bg-slate-300"
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition-transform duration-300 ease-in-out ${
+                  enableGst ? "translate-x-5" : "translate-x-0"
+                }`}
+              />
+            </button>
+          </div>
         </div>
+
         <div>
           <label className="block text-slate-700 font-semibold mb-1.5">Payment Status</label>
           <select
@@ -363,21 +388,24 @@ export default function BillEditor() {
           items={items}
           onChange={setItems}
           isInterState={isInterState}
+          enableGst={enableGst}
         />
       </div>
 
       {/* Interstate Switch & Notes */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div className="p-5 bg-white border border-slate-200/90 rounded-xl space-y-4 shadow-xs">
-          <label className="flex items-center gap-2.5 cursor-pointer text-xs font-semibold text-slate-800 bg-slate-50 p-3 rounded-lg border border-slate-200/60">
-            <input
-              type="checkbox"
-              checked={isInterState}
-              onChange={(e) => handleInterStateChange(e.target.checked)}
-              className="rounded border-slate-300 text-[#087ea4] focus:ring-[#087ea4] w-4 h-4 cursor-pointer"
-            />
-            <span>Interstate Supply (Charge IGST instead of CGST + SGST)</span>
-          </label>
+          {enableGst && (
+            <label className="flex items-center gap-2.5 cursor-pointer text-xs font-semibold text-slate-800 bg-slate-50 p-3 rounded-lg border border-slate-200/60 transition-all duration-300">
+              <input
+                type="checkbox"
+                checked={isInterState}
+                onChange={(e) => handleInterStateChange(e.target.checked)}
+                className="rounded border-slate-300 text-[#087ea4] focus:ring-[#087ea4] w-4 h-4 cursor-pointer"
+              />
+              <span>Interstate Supply (Charge IGST instead of CGST + SGST)</span>
+            </label>
+          )}
 
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1.5">
@@ -396,6 +424,7 @@ export default function BillEditor() {
         <TotalsSection
           totals={totals}
           isInterState={isInterState}
+          enableGst={enableGst}
         />
       </div>
     </div>
