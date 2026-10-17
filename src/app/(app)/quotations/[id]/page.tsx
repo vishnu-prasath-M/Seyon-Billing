@@ -1,9 +1,10 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import QuotationDocument, { DocumentData } from "@/components/QuotationDocument";
 import { LoadingState, Toast, useToast, ConfirmDialog } from "@/components/ui";
+import { sharePdfFile, downloadPdfFile } from "@/lib/pdf-share";
 
 export default function QuotationViewPage() {
   const params = useParams();
@@ -16,6 +17,9 @@ export default function QuotationViewPage() {
   const [settings, setSettings] = useState<any>(null);
   const [isConverting, setIsConverting] = useState<boolean>(false);
   const [showConvertConfirm, setShowConvertConfirm] = useState<boolean>(false);
+  const [isSharing, setIsSharing] = useState<boolean>(false);
+  const [isDownloading, setIsDownloading] = useState<boolean>(false);
+  const docRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -41,8 +45,41 @@ export default function QuotationViewPage() {
     window.print();
   };
 
-  const handleDownloadPdf = () => {
-    window.open(`/api/quotations/${id}/pdf`, "_blank");
+  const handleDownloadPdf = async () => {
+    if (!docRef.current) {
+      window.open(`/api/quotations/${id}/pdf`, "_blank");
+      return;
+    }
+    setIsDownloading(true);
+    try {
+      const fileName = `${quotation.quotationNumber || "Quotation"}.pdf`;
+      await downloadPdfFile(docRef.current, fileName);
+      showToast("PDF downloaded successfully!", "success");
+    } catch {
+      window.open(`/api/quotations/${id}/pdf`, "_blank");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handleSharePdf = async () => {
+    if (!docRef.current) return;
+    setIsSharing(true);
+    try {
+      const fileName = `${quotation.quotationNumber || "Quotation"}.pdf`;
+      await sharePdfFile({
+        element: docRef.current,
+        fileName,
+        title: `${quotation.quotationNumber} - Seyon UPVC`,
+        text: `Quotation ${quotation.quotationNumber} for ${quotation.customerSnapshot?.name || "Customer"} - Total: ₹${quotation.grandTotal}`,
+        onSuccess: (msg) => showToast(msg, "success"),
+        onError: () => showToast("Could not share PDF", "error"),
+      });
+    } catch {
+      showToast("Could not share PDF", "error");
+    } finally {
+      setIsSharing(false);
+    }
   };
 
   const handleConvert = async () => {
@@ -136,17 +173,17 @@ export default function QuotationViewPage() {
       {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
 
       {/* Action Bar (Hidden on print) */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-200 print:hidden">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-4 border-b border-slate-200 print:hidden">
         <div className="flex items-center gap-3.5">
           <Link
             href="/quotations"
-            className="text-xs text-slate-700 hover:text-slate-900 border border-slate-300 rounded-lg px-3 py-1.5 hover:bg-slate-50 font-semibold shadow-2xs transition-colors"
+            className="text-xs text-slate-700 hover:text-slate-900 border border-slate-300 rounded-lg px-3 py-1.5 hover:bg-slate-50 font-semibold shadow-2xs transition-colors shrink-0"
           >
             ← Back
           </Link>
           <div>
-            <div className="flex items-center gap-2.5">
-              <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight font-mono">
                 {quotation.quotationNumber}
               </h1>
               <span
@@ -163,19 +200,19 @@ export default function QuotationViewPage() {
                 {quotation.status}
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Terminal: <span className="font-semibold text-slate-700">{quotation.counter?.name}</span> • Created by: {quotation.user?.name || quotation.createdBy?.name}
+            <p className="text-xs text-slate-500 mt-0.5">
+              Created by: <span className="font-semibold text-slate-700">{quotation.user?.name || quotation.createdBy?.name}</span>
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2 flex-wrap">
           {quotation.status !== "CONVERTED" ? (
             <button
               type="button"
               disabled={isConverting}
               onClick={() => setShowConvertConfirm(true)}
-              className="px-4 py-2 text-xs font-bold bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 disabled:opacity-50 cursor-pointer shadow-sm transition-all"
+              className="px-3.5 py-1.5 text-xs font-bold bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 disabled:opacity-50 cursor-pointer shadow-sm transition-all"
             >
               {isConverting ? "Converting..." : "Convert to Bill"}
             </button>
@@ -185,26 +222,47 @@ export default function QuotationViewPage() {
             </span>
           )}
 
+          {/* SHARE PDF BUTTON */}
           <button
             type="button"
-            onClick={handleDownloadPdf}
-            className="px-4 py-2 text-xs font-semibold border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 cursor-pointer shadow-2xs transition-colors"
+            disabled={isSharing}
+            onClick={handleSharePdf}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 cursor-pointer shadow-sm transition-all"
+            title="Share PDF directly to WhatsApp, Email or another device"
           >
-            Download / View PDF
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+            </svg>
+            {isSharing ? "Sharing..." : "Share PDF"}
+          </button>
+
+          <button
+            type="button"
+            disabled={isDownloading}
+            onClick={handleDownloadPdf}
+            className="px-3.5 py-1.5 text-xs font-semibold border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 disabled:opacity-50 cursor-pointer shadow-2xs transition-colors"
+          >
+            {isDownloading ? "Downloading..." : "Download PDF"}
           </button>
           <button
             type="button"
             onClick={handlePrint}
-            className="px-5 py-2 text-xs font-bold bg-[#087ea4] text-white rounded-lg hover:bg-[#076b8b] cursor-pointer shadow-sm transition-all"
+            className="px-4 py-1.5 text-xs font-bold bg-[#087ea4] text-white rounded-lg hover:bg-[#076b8b] cursor-pointer shadow-sm transition-all"
           >
-            Print Quotation
+            Print
           </button>
         </div>
       </div>
 
+      {/* Mobile helper notice */}
+      <div className="sm:hidden -mt-2 mb-1 flex items-center justify-between text-[11px] text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+        <span>💡 Mobile View</span>
+        <span>Tap <strong>Share PDF</strong> or scroll table ↔</span>
+      </div>
+
       {/* A4 Document View on Canvas */}
-      <div className="py-6 px-2 sm:px-6 bg-slate-100/70 rounded-2xl border border-slate-200/90 print:bg-white print:border-none print:p-0 flex justify-center">
-        <div className="shadow-xl ring-1 ring-black/5 bg-white rounded-sm w-full max-w-[850px] overflow-hidden">
+      <div className="py-4 sm:py-6 px-1 sm:px-6 bg-slate-100/70 rounded-2xl border border-slate-200/90 print:bg-white print:border-none print:p-0 flex justify-center overflow-x-auto">
+        <div ref={docRef} className="shadow-xl ring-1 ring-black/5 bg-white rounded-sm w-full max-w-[850px] overflow-hidden">
           <QuotationDocument data={documentData} />
         </div>
       </div>

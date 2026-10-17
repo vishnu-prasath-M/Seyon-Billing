@@ -28,7 +28,7 @@ export default function CustomerSelector({
   const [results, setResults] = useState<Customer[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState<"search" | "manual">("search");
+  const [mode, setMode] = useState<"search" | "manual">("manual");
   const wrapRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -71,6 +71,12 @@ export default function CustomerSelector({
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
+
+  useEffect(() => {
+    if (value && value.id) {
+      setMode("search");
+    }
+  }, [value?.id]);
 
   function handleSelect(customer: Customer) {
     onChange(customer);

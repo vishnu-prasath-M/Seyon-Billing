@@ -106,8 +106,9 @@ export async function POST(request: NextRequest) {
     // Generate invoice number
     const settings = await prisma.companySettings.findFirst();
     const prefix = settings?.invoicePrefix || "INV";
+    const cleanPrefix = prefix.replace(/[\s-]+$/, "");
     const nextNum = settings?.invoiceNextNumber || 1;
-    const invoiceNumber = `${prefix}-${String(nextNum).padStart(6, "0")}`;
+    const invoiceNumber = `${cleanPrefix}-${String(nextNum).padStart(6, "0")}`;
 
     if (settings) {
       await prisma.companySettings.update({

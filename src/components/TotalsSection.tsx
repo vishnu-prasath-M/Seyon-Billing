@@ -43,7 +43,7 @@ export function computeTotals(
         s +
         (typeof i.gstAmount === "number"
           ? i.gstAmount
-          : ((i.taxableAmount * (Number(i.gstPercent) || 18)) / 100)),
+          : ((i.taxableAmount * (i.gstPercent != null ? Number(i.gstPercent) : 0)) / 100)),
       0
     )
   );

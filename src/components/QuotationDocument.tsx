@@ -84,7 +84,16 @@ export interface DocumentData {
 
 export default function QuotationDocument({ data }: { data: DocumentData }) {
   const isInvoice = data.type === "invoice";
-  const docTypeHeader = isInvoice ? "TAX INVOICE" : "QUOTATION";
+  const hasIgst = (data.igstAmount || 0) > 0;
+  const totalTaxAmount = hasIgst
+    ? (data.igstAmount || 0)
+    : (data.cgstAmount || 0) + (data.sgstAmount || 0);
+
+  const docTypeHeader = isInvoice
+    ? totalTaxAmount > 0
+      ? "TAX INVOICE"
+      : "INVOICE / BILL OF SUPPLY"
+    : "QUOTATION";
   const docNumberLabel = isInvoice ? "Invoice No.:" : "Quotation No.:";
   const docDateLabel = isInvoice ? "Invoice Date:" : "Quotation Date:";
 
@@ -99,10 +108,6 @@ export default function QuotationDocument({ data }: { data: DocumentData }) {
     .filter(Boolean)
     .join(" - ");
 
-  const hasIgst = (data.igstAmount || 0) > 0;
-  const totalTaxAmount = hasIgst
-    ? (data.igstAmount || 0)
-    : (data.cgstAmount || 0) + (data.sgstAmount || 0);
 
   const totalQuantity = data.items.reduce(
     (sum, item) => sum + (Number(item.quantity) || 0),
@@ -160,20 +165,20 @@ export default function QuotationDocument({ data }: { data: DocumentData }) {
   const websiteDisplay = (company.website || "WWW.SEYONUPVC.COM").toUpperCase();
 
   return (
-    <div className="bg-white text-[#111827] font-sans text-[11px] leading-relaxed p-10 md:p-12 max-w-[850px] mx-auto border border-neutral-300 shadow-sm print:border-none print:shadow-none print:p-0 print:max-w-none print:m-0 print:text-[10.5px]">
+    <div className="bg-white text-[#111827] font-sans text-[11px] leading-relaxed p-4 sm:p-8 md:p-12 max-w-[850px] mx-auto border border-neutral-300 shadow-sm print:border-none print:shadow-none print:p-0 print:max-w-none print:m-0 print:text-[10.5px]">
       {/* 1. Top Type Marker */}
       <div className="text-[10.5px] font-bold tracking-[0.2em] text-neutral-800 uppercase mb-3">
         {docTypeHeader}
       </div>
 
       {/* 2. Header with Logo & Company Info */}
-      <div className="flex items-start justify-between gap-6 pb-4">
+      <div className="flex flex-col sm:flex-row items-start justify-between gap-4 sm:gap-6 pb-4">
         {/* Logo */}
         <div className="flex-shrink-0 pt-0.5">
           <img
             src="/seyon-logo.png"
             alt="Seyon UPVC Logo"
-            className="h-20 w-auto max-w-[90px] object-contain"
+            className="h-16 sm:h-20 w-auto max-w-[90px] object-contain"
             onError={(e) => {
               (e.target as HTMLElement).style.display = "none";
             }}
@@ -182,7 +187,7 @@ export default function QuotationDocument({ data }: { data: DocumentData }) {
 
         {/* Company Title & Details */}
         <div className="flex-1 text-left">
-          <h1 className="text-[21px] font-extrabold tracking-tight text-[#087ea4] leading-tight mb-1">
+          <h1 className="text-[19px] sm:text-[21px] font-extrabold tracking-tight text-[#087ea4] leading-tight mb-1">
             {companyName}
           </h1>
           <p className="text-[10.5px] text-neutral-600 font-medium leading-snug max-w-xl mb-1.5">
@@ -206,10 +211,10 @@ export default function QuotationDocument({ data }: { data: DocumentData }) {
       </div>
 
       {/* 3. Subtle Slate / Gray-Blue Details Banner Bar */}
-      <div className="bg-[#EEF4F7] text-neutral-800 border border-[#D5E3EB] px-4 py-2 rounded-xs flex items-center justify-between text-[11px] mb-3">
+      <div className="bg-[#EEF4F7] text-neutral-800 border border-[#D5E3EB] px-3 sm:px-4 py-2 rounded-xs flex flex-wrap items-center justify-between gap-2 text-[11px] mb-3">
         <div>
           <span className="text-neutral-700">{docNumberLabel} </span>
-          <span className="font-bold text-neutral-900">{data.number}</span>
+          <span className="font-bold text-neutral-900 font-mono">{data.number}</span>
         </div>
         <div>
           <span className="text-neutral-700">{docDateLabel} </span>
@@ -224,9 +229,9 @@ export default function QuotationDocument({ data }: { data: DocumentData }) {
       </div>
 
       {/* 4. Parties & Order Info (Bill To, Ship To, Sales Person) */}
-      <div className="grid grid-cols-12 gap-5 pb-3 mb-2 text-[11px]">
+      <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5 sm:gap-5 pb-3 mb-2 text-[11px]">
         {/* Bill To */}
-        <div className="col-span-5">
+        <div className="sm:col-span-5">
           <div className="text-[10px] font-bold text-neutral-800 uppercase tracking-wider mb-1">
             BILL TO
           </div>
@@ -253,7 +258,7 @@ export default function QuotationDocument({ data }: { data: DocumentData }) {
         </div>
 
         {/* Ship To */}
-        <div className="col-span-4">
+        <div className="sm:col-span-4">
           <div className="text-[10px] font-bold text-neutral-800 uppercase tracking-wider mb-1">
             SHIP TO
           </div>
@@ -270,24 +275,19 @@ export default function QuotationDocument({ data }: { data: DocumentData }) {
         </div>
 
         {/* Sales Person */}
-        <div className="col-span-3 text-right">
+        <div className="sm:col-span-3 sm:text-right">
           <div className="text-[10px] font-bold text-neutral-800 uppercase tracking-wider mb-1">
             SALES PERSON
           </div>
           <div className="font-bold text-neutral-900 font-mono text-[11.5px]">
             {data.salesPerson || "10025"}
           </div>
-          {data.counterName && (
-            <div className="text-[10px] text-neutral-500 mt-1">
-              Counter: <span className="font-medium text-neutral-700">{data.counterName}</span>
-            </div>
-          )}
         </div>
       </div>
 
       {/* 5. Line Items Table */}
-      <div className="border-t-2 border-[#087ea4] mb-2">
-        <table className="w-full text-[10.5px] border-collapse">
+      <div className="overflow-x-auto w-full border-t-2 border-[#087ea4] mb-2">
+        <table className="w-full min-w-[560px] sm:min-w-full text-[10.5px] border-collapse">
           <thead>
             <tr className="border-b border-neutral-300 text-neutral-900 font-bold uppercase text-[9.5px]">
               <th className="py-2.5 px-1.5 text-left">ITEMS/SERVICES</th>
@@ -402,9 +402,9 @@ export default function QuotationDocument({ data }: { data: DocumentData }) {
       </div>
 
       {/* 7. Bottom Section (Left: Bank + Terms, Right: Calculations + Words + Signature) */}
-      <div className="grid grid-cols-12 gap-8 text-[10.5px]">
+      <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 sm:gap-8 text-[10.5px]">
         {/* Left Column */}
-        <div className="col-span-7 space-y-4">
+        <div className="col-span-12 sm:col-span-7 space-y-4">
           {/* Bank Details */}
           <div>
             <div className="font-bold text-neutral-900 uppercase tracking-wider text-[10px] mb-1.5">
@@ -444,7 +444,7 @@ export default function QuotationDocument({ data }: { data: DocumentData }) {
         </div>
 
         {/* Right Column */}
-        <div className="col-span-5 space-y-3">
+        <div className="col-span-12 sm:col-span-5 space-y-3">
           {/* Tax Breakdown */}
           <div className="space-y-1.5 text-[11px] border-b border-neutral-300 pb-2">
             <div className="flex justify-between items-center text-neutral-700">
@@ -452,21 +452,28 @@ export default function QuotationDocument({ data }: { data: DocumentData }) {
               <span className="font-medium">₹ {formatNumber(data.taxableAmount)}</span>
             </div>
 
-            {!hasIgst ? (
-              <>
+            {totalTaxAmount > 0 ? (
+              !hasIgst ? (
+                <>
+                  <div className="flex justify-between items-center text-neutral-700">
+                    <span>CGST</span>
+                    <span className="font-medium">₹ {formatNumber(data.cgstAmount)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-neutral-700">
+                    <span>SGST</span>
+                    <span className="font-medium">₹ {formatNumber(data.sgstAmount)}</span>
+                  </div>
+                </>
+              ) : (
                 <div className="flex justify-between items-center text-neutral-700">
-                  <span>CGST @9%</span>
-                  <span className="font-medium">₹ {formatNumber(data.cgstAmount)}</span>
+                  <span>IGST</span>
+                  <span className="font-medium">₹ {formatNumber(data.igstAmount)}</span>
                 </div>
-                <div className="flex justify-between items-center text-neutral-700">
-                  <span>SGST @9%</span>
-                  <span className="font-medium">₹ {formatNumber(data.sgstAmount)}</span>
-                </div>
-              </>
+              )
             ) : (
-              <div className="flex justify-between items-center text-neutral-700">
-                <span>IGST @18%</span>
-                <span className="font-medium">₹ {formatNumber(data.igstAmount)}</span>
+              <div className="flex justify-between items-center text-neutral-500">
+                <span>GST / Taxes</span>
+                <span className="font-medium">₹ 0.00</span>
               </div>
             )}
           </div>

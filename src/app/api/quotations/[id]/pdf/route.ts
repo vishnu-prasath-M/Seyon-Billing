@@ -483,19 +483,26 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
           <span>Taxable Amount</span>
           <span>₹ ${formatNumber(Number(quotation.taxableAmount))}</span>
         </div>
-        ${!hasIgst ? `
+        ${totalTaxAmount > 0 ? (
+          !hasIgst ? `
           <div class="tax-row">
-            <span>CGST @9%</span>
+            <span>CGST</span>
             <span>₹ ${formatNumber(Number(quotation.cgstAmount))}</span>
           </div>
           <div class="tax-row">
-            <span>SGST @9%</span>
+            <span>SGST</span>
             <span>₹ ${formatNumber(Number(quotation.sgstAmount))}</span>
           </div>
         ` : `
           <div class="tax-row">
-            <span>IGST @18%</span>
+            <span>IGST</span>
             <span>₹ ${formatNumber(Number(quotation.igstAmount))}</span>
+          </div>
+        `
+        ) : `
+          <div class="tax-row">
+            <span>GST / Taxes</span>
+            <span>₹ 0.00</span>
           </div>
         `}
       </div>

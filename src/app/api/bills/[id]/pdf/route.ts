@@ -374,7 +374,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     <button class="btn-print" onclick="window.print()">Print / Save as PDF</button>
   </div>
 
-  <div class="doc-type">TAX INVOICE</div>
+  <div class="doc-type">${totalTaxAmount > 0 ? "TAX INVOICE" : "INVOICE / BILL OF SUPPLY"}</div>
 
   <div class="header">
     <img src="${logoBase64}" alt="Seyon UPVC Logo" class="logo-img" />
@@ -473,19 +473,26 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
           <span>Taxable Amount</span>
           <span>₹ ${formatNumber(Number(bill.taxableAmount))}</span>
         </div>
-        ${!hasIgst ? `
+        ${totalTaxAmount > 0 ? (
+          !hasIgst ? `
           <div class="tax-row">
-            <span>CGST @9%</span>
+            <span>CGST</span>
             <span>₹ ${formatNumber(Number(bill.cgstAmount))}</span>
           </div>
           <div class="tax-row">
-            <span>SGST @9%</span>
+            <span>SGST</span>
             <span>₹ ${formatNumber(Number(bill.sgstAmount))}</span>
           </div>
         ` : `
           <div class="tax-row">
-            <span>IGST @18%</span>
+            <span>IGST</span>
             <span>₹ ${formatNumber(Number(bill.igstAmount))}</span>
+          </div>
+        `
+        ) : `
+          <div class="tax-row">
+            <span>GST / Taxes</span>
+            <span>₹ 0.00</span>
           </div>
         `}
       </div>

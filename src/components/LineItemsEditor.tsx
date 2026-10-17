@@ -88,7 +88,7 @@ export function createItem(product: Product, isInterState: boolean): LineItem {
     unit: product.unit || "Nos",
     mrp: parseFloat(product.mrp?.toString() || "0") || 0,
     rate: parseFloat(product.sellingPrice?.toString() || "0") || 0,
-    gstPercent: parseFloat(product.gstPercent?.toString() || "18") || 18,
+    gstPercent: 0, // Default 0% GST: Rate is final bill price
     quantity: 1,
     discountPercent: 0,
   };
@@ -223,8 +223,16 @@ export default function LineItemsEditor({
                       {formatNumber(item.taxableAmount)}
                     </td>
 
-                    <td className="py-3 px-2 text-right font-mono text-slate-600">
-                      {item.gstPercent}%
+                    <td className="py-3 px-2 text-right">
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        step={0.1}
+                        value={item.gstPercent}
+                        onChange={(e) => updateItem(item._key, "gstPercent", e.target.value)}
+                        className="w-full min-w-[56px] px-2 py-1.5 text-xs text-right font-mono text-slate-700 border border-slate-300 rounded-md focus:border-[#087ea4] focus:ring-1 focus:ring-[#087ea4] focus:outline-none bg-white"
+                      />
                     </td>
 
                     <td className="py-3 px-4 text-right font-mono font-bold text-slate-900 text-[12.5px]">

@@ -107,8 +107,9 @@ export async function POST(request: NextRequest) {
     // Generate unique quotation number
     const settings = await prisma.companySettings.findFirst();
     const prefix = settings?.quotationPrefix || "QT";
+    const cleanPrefix = prefix.replace(/[\s-]+$/, "");
     const nextNum = settings?.quotationNextNumber || 1;
-    const quotationNumber = `${prefix}-${String(nextNum).padStart(6, "0")}`;
+    const quotationNumber = `${cleanPrefix}-${String(nextNum).padStart(6, "0")}`;
 
     // Increment counter atomically
     if (settings) {

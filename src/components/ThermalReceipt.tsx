@@ -15,7 +15,11 @@ export default function ThermalReceipt({ data }: { data: DocumentData }) {
         {company.phone && <div className="text-[10px]">Ph: {company.phone}</div>}
         {company.gstin && <div className="text-[10px]">GSTIN: {company.gstin}</div>}
         <div className="font-bold text-xs mt-1 border-t border-dashed border-black pt-1">
-          {data.type === "invoice" ? "TAX INVOICE" : "QUOTATION"}
+          {data.type === "invoice"
+            ? (data.cgstAmount || 0) + (data.sgstAmount || 0) + (data.igstAmount || 0) > 0
+              ? "TAX INVOICE"
+              : "INVOICE"
+            : "QUOTATION"}
         </div>
       </div>
 
@@ -26,7 +30,6 @@ export default function ThermalReceipt({ data }: { data: DocumentData }) {
         </div>
         <div>Cust: {data.customer.name}</div>
         {data.customer.phone && <div>Ph: {data.customer.phone}</div>}
-        {data.counterName && <div>Counter: {data.counterName}</div>}
       </div>
 
       <div className="py-1">
@@ -67,23 +70,25 @@ export default function ThermalReceipt({ data }: { data: DocumentData }) {
           <span>Taxable:</span>
           <span>{formatCurrency(data.taxableAmount)}</span>
         </div>
-        {data.igstAmount > 0 ? (
-          <div className="flex justify-between">
-            <span>IGST:</span>
-            <span>{formatCurrency(data.igstAmount)}</span>
-          </div>
-        ) : (
-          <>
+        {(data.cgstAmount || 0) + (data.sgstAmount || 0) + (data.igstAmount || 0) > 0 ? (
+          data.igstAmount > 0 ? (
             <div className="flex justify-between">
-              <span>CGST:</span>
-              <span>{formatCurrency(data.cgstAmount)}</span>
+              <span>IGST:</span>
+              <span>{formatCurrency(data.igstAmount)}</span>
             </div>
-            <div className="flex justify-between">
-              <span>SGST:</span>
-              <span>{formatCurrency(data.sgstAmount)}</span>
-            </div>
-          </>
-        )}
+          ) : (
+            <>
+              <div className="flex justify-between">
+                <span>CGST:</span>
+                <span>{formatCurrency(data.cgstAmount)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>SGST:</span>
+                <span>{formatCurrency(data.sgstAmount)}</span>
+              </div>
+            </>
+          )
+        ) : null}
         <div className="flex justify-between text-xs font-bold border-t border-black pt-1 mt-1">
           <span>TOTAL:</span>
           <span>{formatCurrency(data.grandTotal)}</span>
