@@ -75,6 +75,9 @@ export async function POST(request: NextRequest) {
       items,
       notes,
       isInterState,
+      status,
+      paymentMode,
+      amountPaid,
     } = body;
 
     if (!items || items.length === 0) {
@@ -117,16 +120,30 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    const billStatus = status === "PAID" || status === "PARTIAL" || status === "UNPAID" ? status : "PAID";
+    const calculatedAmountPaid = billStatus === "PAID"
+      ? totals.grandTotal
+      : billStatus === "PARTIAL"
+      ? Number(amountPaid || 0)
+      : 0;
+
+    const mergedSnapshot = {
+      ...(customerSnapshot || {}),
+      paymentMode: paymentMode || "CASH",
+    };
+
     const bill = await prisma.bill.create({
       data: {
         invoiceNumber,
         customerId: customerId || null,
-        customerSnapshot: customerSnapshot || {},
+        customerSnapshot: mergedSnapshot,
         counterId: session.counterId, // Always from session
         createdById: session.userId,
         salesPerson: salesPerson?.trim() || null,
         placeOfSupply: placeOfSupply?.trim() || null,
         invoiceDate: invoiceDate ? new Date(invoiceDate) : new Date(),
+        status: billStatus,
+        amountPaid: calculatedAmountPaid,
         notes: notes?.trim() || null,
         subtotal: totals.subtotal,
         discountAmount: totals.discountAmount,

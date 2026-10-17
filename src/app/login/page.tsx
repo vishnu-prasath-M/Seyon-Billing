@@ -22,7 +22,7 @@ export default function LoginPage() {
       if (!res.ok) {
         setError(data.error || "Login failed. Please check your credentials.");
       } else {
-        router.push("/dashboard");
+        router.push("/bills/new");
       }
     } catch {
       setError("Network error. Please try again.");

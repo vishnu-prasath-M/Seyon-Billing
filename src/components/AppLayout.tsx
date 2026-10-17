@@ -68,13 +68,12 @@ const XIcon = () => (
 );
 
 const navItems: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: <LayoutGridIcon /> },
-  { href: "/products", label: "Products Master", icon: <PackageIcon /> },
+  { href: "/bills/new", label: "Create Bill", icon: <ReceiptIcon /> },
+  { href: "/bills", label: "Bills & Invoices", icon: <HistoryIcon /> },
   { href: "/quotations", label: "Quotations", icon: <FileTextIcon /> },
-  { href: "/billing", label: "Billing & Invoices", icon: <ReceiptIcon /> },
-  { href: "/customers", label: "Customer Master", icon: <UsersIcon /> },
-  { href: "/history", label: "Transaction History", icon: <HistoryIcon /> },
+  { href: "/products", label: "Products Master", icon: <PackageIcon /> },
   { href: "/settings", label: "Business Settings", icon: <SettingsIcon /> },
+  { href: "/dashboard", label: "Dashboard", icon: <LayoutGridIcon /> },
 ];
 
 interface SidebarProps {
@@ -87,8 +86,9 @@ function Sidebar({ open, onClose }: SidebarProps) {
   const { user, logout } = useAuth();
 
   function isActive(href: string) {
+    if (href === "/bills/new") return pathname === "/bills/new" || pathname === "/billing/new";
+    if (href === "/bills") return (pathname === "/bills" || pathname.startsWith("/bills/")) && pathname !== "/bills/new";
     if (href === "/dashboard") return pathname === "/dashboard";
-    if (href === "/billing") return pathname.startsWith("/billing") || pathname.startsWith("/bills");
     return pathname.startsWith(href);
   }
 
@@ -110,7 +110,7 @@ function Sidebar({ open, onClose }: SidebarProps) {
       >
         {/* Brand Header with Prominent Seyon UPVC Logo */}
         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center gap-3.5 no-underline group">
+          <Link href="/bills/new" className="flex items-center gap-3.5 no-underline group">
             <div className="relative">
               <img
                 src="/seyon-logo.png"
@@ -210,14 +210,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const titles: Record<string, string> = {
-    "/dashboard": "Workspace Dashboard",
-    "/products": "Products & Pricing Master",
+    "/bills/new": "Create Bill",
+    "/billing/new": "Create Bill",
+    "/bills": "Bills & Invoices",
+    "/billing": "Bills & Invoices",
     "/quotations": "Estimates & Quotations",
-    "/billing": "Tax Invoices & Billing",
-    "/bills": "Tax Invoices & Billing",
-    "/customers": "Customer Master Directory",
-    "/history": "Transaction History",
+    "/products": "Products & Pricing Master",
     "/settings": "Business Settings",
+    "/dashboard": "Workspace Dashboard",
   };
   const pageTitle = Object.entries(titles).find(([k]) => pathname.startsWith(k))?.[1] ?? "Seyon Billing";
 

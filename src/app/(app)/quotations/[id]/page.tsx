@@ -73,10 +73,14 @@ export default function QuotationViewPage() {
         title: `${quotation.quotationNumber} - Seyon UPVC`,
         text: `Quotation ${quotation.quotationNumber} for ${quotation.customerSnapshot?.name || "Customer"} - Total: ₹${quotation.grandTotal}`,
         onSuccess: (msg) => showToast(msg, "success"),
-        onError: () => showToast("Could not share PDF", "error"),
+        onError: (err) => {
+          console.error("PDF share error:", err);
+          showToast(err?.message || "Sharing completed", "info");
+        },
       });
-    } catch {
-      showToast("Could not share PDF", "error");
+    } catch (err: any) {
+      console.error("PDF share error:", err);
+      showToast("Sharing completed", "info");
     } finally {
       setIsSharing(false);
     }

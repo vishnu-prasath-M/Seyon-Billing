@@ -226,6 +226,20 @@ export default function QuotationDocument({ data }: { data: DocumentData }) {
             <span className="font-bold text-neutral-900">{formattedExpiry}</span>
           </div>
         )}
+        {data.status && isInvoice && (
+          <div>
+            <span className="text-neutral-700">Status: </span>
+            <span className={`font-bold font-mono px-2 py-0.5 rounded text-[10px] ${
+              data.status === "PAID"
+                ? "bg-emerald-100 text-emerald-800"
+                : data.status === "PARTIAL"
+                ? "bg-amber-100 text-amber-800"
+                : "bg-rose-100 text-rose-800"
+            }`}>
+              {data.status}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* 4. Parties & Order Info (Bill To, Ship To, Sales Person) */}

@@ -327,10 +327,10 @@ export default function DashboardPage() {
             + Add UPVC Profile / Product
           </Link>
           <Link
-            href="/customers"
+            href="/bills"
             className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 hover:bg-slate-100 font-semibold transition-colors shadow-2xs"
           >
-            Manage Customer Directory
+            View All Bills & Invoices
           </Link>
           <Link
             href="/history"

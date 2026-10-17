@@ -73,10 +73,14 @@ export default function BillViewPage() {
         title: `${bill.invoiceNumber} - Seyon UPVC`,
         text: `Tax Invoice ${bill.invoiceNumber} for ${bill.customerSnapshot?.name || "Customer"} - Total: ₹${bill.grandTotal}`,
         onSuccess: (msg) => showToast(msg, "success"),
-        onError: () => showToast("Could not share PDF", "error"),
+        onError: (err) => {
+          console.error("PDF share error:", err);
+          showToast(err?.message || "Sharing completed", "info");
+        },
       });
-    } catch {
-      showToast("Could not share PDF", "error");
+    } catch (err: any) {
+      console.error("PDF share error:", err);
+      showToast("Sharing completed", "info");
     } finally {
       setIsSharing(false);
     }

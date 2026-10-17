@@ -37,7 +37,7 @@ export async function POST(
 
     // Generate invoice number
     const settings = await prisma.companySettings.findFirst();
-    const prefix = settings?.invoicePrefix || "INV";
+    const prefix = (settings?.invoicePrefix || "INV").replace(/[\s-]+$/, "");
     const nextNum = settings?.invoiceNextNumber || 1;
     const invoiceNumber = `${prefix}-${String(nextNum).padStart(6, "0")}`;
 
@@ -75,6 +75,8 @@ export async function POST(
           convertedFromQuotationId: quotation.id,
           salesPerson: quotation.salesPerson,
           placeOfSupply: quotation.placeOfSupply,
+          status: "PAID",
+          amountPaid: totals.grandTotal,
           subtotal: totals.subtotal,
           discountAmount: totals.discountAmount,
           taxableAmount: totals.taxableAmount,
