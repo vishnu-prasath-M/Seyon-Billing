@@ -73,7 +73,7 @@ const navItems: NavItem[] = [
   { href: "/quotations", label: "Quotations", icon: <FileTextIcon /> },
   { href: "/products", label: "Products Master", icon: <PackageIcon /> },
   { href: "/settings", label: "Business Settings", icon: <SettingsIcon /> },
-  { href: "/dashboard", label: "Dashboard", icon: <LayoutGridIcon /> },
+  { href: "/dashboard/overview", label: "Dashboard", icon: <LayoutGridIcon /> },
 ];
 
 interface SidebarProps {
@@ -86,9 +86,23 @@ function Sidebar({ open, onClose }: SidebarProps) {
   const { user, logout } = useAuth();
 
   function isActive(href: string) {
-    if (href === "/bills/new") return pathname === "/bills/new" || pathname === "/billing/new";
-    if (href === "/bills") return (pathname === "/bills" || pathname.startsWith("/bills/")) && pathname !== "/bills/new";
-    if (href === "/dashboard") return pathname === "/dashboard";
+    if (href === "/bills/new") {
+      return (
+        pathname === "/bills/new" ||
+        pathname === "/billing/new" ||
+        pathname === "/" ||
+        pathname === "/dashboard"
+      );
+    }
+    if (href === "/bills") {
+      return (
+        (pathname === "/bills" || pathname.startsWith("/bills/")) &&
+        pathname !== "/bills/new"
+      );
+    }
+    if (href === "/dashboard/overview") {
+      return pathname.startsWith("/dashboard/overview");
+    }
     return pathname.startsWith(href);
   }
 
