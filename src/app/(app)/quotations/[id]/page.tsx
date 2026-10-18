@@ -63,24 +63,37 @@ export default function QuotationViewPage() {
   };
 
   const handleSharePdf = async () => {
-    if (!docRef.current) return;
+    if (!docRef.current || !quotation) return;
     setIsSharing(true);
     try {
       const fileName = `${quotation.quotationNumber || "Quotation"}.pdf`;
+      const custName = quotation.customerSnapshot?.name || quotation.customerName || "Customer";
+      const phone = quotation.customerSnapshot?.phone || quotation.customerPhone || "";
+      const dateStr = quotation.createdAt || quotation.quotationDate
+        ? new Date(quotation.createdAt || quotation.quotationDate).toLocaleDateString("en-IN", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          })
+        : "";
+
+      const text = `*SEYON UPVC WINDOWS & DOORS*\n📋 *Quotation / Estimate:* ${quotation.quotationNumber}\n👤 *Customer:* ${custName}\n📅 *Date:* ${dateStr}\n💰 *Grand Total:* ₹${Number(quotation.grandTotal).toFixed(2)}\n⏳ *Validity:* ${quotation.expiryDays || 15} Days\n\nThank you for choosing Seyon UPVC! Please find your quotation attached.`;
+
       await sharePdfFile({
         element: docRef.current,
         fileName,
         title: `${quotation.quotationNumber} - Seyon UPVC`,
-        text: `Quotation ${quotation.quotationNumber} for ${quotation.customerSnapshot?.name || "Customer"} - Total: ₹${quotation.grandTotal}`,
+        text,
+        phone,
         onSuccess: (msg) => showToast(msg, "success"),
         onError: (err) => {
           console.error("PDF share error:", err);
-          showToast(err?.message || "Sharing completed", "info");
+          showToast("Opening WhatsApp...", "info");
         },
       });
     } catch (err: any) {
       console.error("PDF share error:", err);
-      showToast("Sharing completed", "info");
+      showToast("Opening WhatsApp...", "info");
     } finally {
       setIsSharing(false);
     }
@@ -226,18 +239,18 @@ export default function QuotationViewPage() {
             </span>
           )}
 
-          {/* SHARE PDF BUTTON */}
+          {/* SHARE ON WHATSAPP BUTTON */}
           <button
             type="button"
             disabled={isSharing}
             onClick={handleSharePdf}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 cursor-pointer shadow-sm transition-all"
-            title="Share PDF directly to WhatsApp, Email or another device"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-lg disabled:opacity-50 cursor-pointer shadow-sm transition-all"
+            title="Share PDF quotation on WhatsApp"
           >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+            <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+              <path d="M12.031 2C6.516 2 2.016 6.5 2.016 12.016c0 1.953.563 3.844 1.625 5.469L2 22l4.672-1.594A9.97 9.97 0 0 0 12.031 22C17.547 22 22 17.5 22 12.016 22 6.5 17.547 2 12.031 2Zm-.016 17.656c-1.688 0-3.328-.484-4.734-1.39l-.344-.219-2.781.953.953-2.703-.234-.375a8.03 8.03 0 0 1-1.328-4.406c0-4.469 3.64-8.109 8.125-8.109 4.469 0 8.109 3.64 8.109 8.109 0 4.484-3.64 8.14-8.109 8.14Zm4.516-6.14c-.25-.125-1.469-.719-1.688-.813-.234-.078-.406-.125-.578.125-.172.25-.672.828-.828 1-.156.172-.313.203-.563.078-.25-.125-1.063-.39-2.031-1.25a7.74 7.74 0 0 1-1.406-1.734c-.156-.25 0-.39.109-.531.11-.125.25-.313.375-.469.125-.156.172-.266.25-.438.078-.172.047-.328-.016-.453-.063-.125-.578-1.39-.797-1.906-.219-.5-.438-.438-.594-.438h-.5c-.172 0-.453.063-.688.313-.234.25-.906.89-.906 2.172 0 1.281.938 2.516 1.063 2.688.125.172 1.844 2.813 4.469 3.953.625.266 1.109.438 1.484.563.625.203 1.203.172 1.656.109.5-.078 1.469-.609 1.688-1.203.203-.594.203-1.094.141-1.203-.063-.11-.234-.172-.484-.297Z" />
             </svg>
-            {isSharing ? "Sharing..." : "Share PDF"}
+            <span>{isSharing ? "Preparing..." : "Share on WhatsApp"}</span>
           </button>
 
           <button
@@ -261,7 +274,7 @@ export default function QuotationViewPage() {
       {/* Mobile helper notice */}
       <div className="sm:hidden -mt-2 mb-1 flex items-center justify-between text-[11px] text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
         <span>💡 Mobile View</span>
-        <span>Tap <strong>Share PDF</strong> or scroll table ↔</span>
+        <span>Tap <strong>Share on WhatsApp</strong> to send PDF</span>
       </div>
 
       {/* A4 Document View on Canvas */}
