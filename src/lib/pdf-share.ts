@@ -1,8 +1,11 @@
 /**
  * Local client-side PDF generation & WhatsApp sharing utility
- * Bundled with local html2canvas & jspdf (zero external CDN dependencies)
- * Guarantees WhatsApp opens seamlessly without popup blocker issues on desktop & mobile
+ * Guarantees direct PDF file attachment on mobile devices via native Web Share API
+ * Provides direct download + public PDF access link for desktop WhatsApp Web
  */
+
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 
 export function formatWhatsAppPhone(phone?: string): string {
   if (!phone) return "";
@@ -24,9 +27,6 @@ export function getWhatsAppUrl(phone?: string, text?: string): string {
 }
 
 export async function generatePdfBlob(element: HTMLElement): Promise<Blob> {
-  const html2canvas = (await import("html2canvas")).default;
-  const { jsPDF } = await import("jspdf");
-
   const canvas = await html2canvas(element, {
     scale: 2,
     useCORS: true,
@@ -41,111 +41,22 @@ export async function generatePdfBlob(element: HTMLElement): Promise<Blob> {
   const pageHeight = 297;
   const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-  // Add image to A4 page
-  pdf.addImage(imgData, "JPEG", 0, 0, imgWidth, Math.min(imgHeight, pageHeight));
+  let heightLeft = imgHeight;
+  let position = 0;
+
+  // First page
+  pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
+  heightLeft -= pageHeight;
+
+  // Subsequent pages if content overflows A4
+  while (heightLeft > 0) {
+    position = heightLeft - imgHeight;
+    pdf.addPage();
+    pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+  }
+
   return pdf.output("blob");
-}
-
-export async function sharePdfFile({
-  element,
-  fileName,
-  title,
-  text,
-  phone,
-  onSuccess,
-  onError,
-}: {
-  element: HTMLElement;
-  fileName: string;
-  title: string;
-  text: string;
-  phone?: string;
-  onSuccess?: (msg: string) => void;
-  onError?: (err: any) => void;
-}) {
-  const isMobile =
-    typeof navigator !== "undefined" &&
-    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-      navigator.userAgent
-    );
-
-  const waUrl = getWhatsAppUrl(phone, text);
-
-  // Synchronously open a placeholder window on desktop to bypass browser popup blockers
-  let waWindow: Window | null = null;
-  if (!isMobile && typeof window !== "undefined") {
-    try {
-      waWindow = window.open("about:blank", "_blank");
-      if (waWindow) {
-        waWindow.document.write(
-          `<!DOCTYPE html><html><head><title>Opening WhatsApp...</title><style>body{font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#0f172a;color:#f8fafc;}div{text-align:center;padding:24px;border:1px solid #334155;border-radius:12px;background:#1e293b;max-width:360px;}h3{margin:0 0 8px 0;color:#22c55e;}p{margin:0;font-size:13px;color:#94a3b8;}</style></head><body><div><h3>Opening WhatsApp...</h3><p>Preparing PDF invoice and opening WhatsApp chat...</p></div></body></html>`
-        );
-      }
-    } catch {
-      // Ignored if window opening failed
-    }
-  }
-
-  try {
-    const blob = await generatePdfBlob(element);
-    const file = new File([blob], fileName, { type: "application/pdf" });
-
-    // Download PDF file locally so it is ready to be attached or archived
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = blobUrl;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
-
-    // 1. Mobile Native Web Share (Android / iOS):
-    // Allows sending the actual PDF file directly into WhatsApp
-    if (
-      isMobile &&
-      typeof navigator !== "undefined" &&
-      navigator.canShare &&
-      navigator.canShare({ files: [file] })
-    ) {
-      try {
-        await navigator.share({
-          files: [file],
-          title,
-          text,
-        });
-        onSuccess?.("Invoice PDF shared successfully!");
-        return true;
-      } catch (err: any) {
-        if (err.name === "AbortError") {
-          return false;
-        }
-      }
-    }
-
-    // 2. Open WhatsApp Web or WhatsApp mobile app directly
-    if (waWindow && !waWindow.closed) {
-      waWindow.location.href = waUrl;
-    } else {
-      if (isMobile) {
-        window.location.href = waUrl;
-      } else {
-        window.open(waUrl, "_blank");
-      }
-    }
-
-    onSuccess?.("PDF downloaded! WhatsApp opened to send invoice.");
-    return true;
-  } catch (err: any) {
-    console.error("PDF generation/share error:", err);
-    if (waWindow && !waWindow.closed) {
-      waWindow.location.href = waUrl;
-    } else {
-      window.open(waUrl, "_blank");
-    }
-    onError?.(err);
-    return false;
-  }
 }
 
 export async function downloadPdfFile(element: HTMLElement, fileName: string) {
@@ -157,5 +68,89 @@ export async function downloadPdfFile(element: HTMLElement, fileName: string) {
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+export async function sharePdfFile({
+  element,
+  fileName,
+  title,
+  text,
+  phone,
+  publicUrl,
+  onSuccess,
+  onError,
+}: {
+  element: HTMLElement;
+  fileName: string;
+  title: string;
+  text?: string;
+  phone?: string;
+  publicUrl?: string;
+  onSuccess?: (msg: string) => void;
+  onError?: (err: any) => void;
+}): Promise<boolean> {
+  try {
+    const blob = await generatePdfBlob(element);
+    const file = new File([blob], fileName, { type: "application/pdf" });
+
+    // 1. Try Native Web Share with the actual PDF file
+    // Supported on Android Chrome, iOS Safari, and modern desktop browsers.
+    // IMPORTANT: We do not include a heavy text body alongside files because WhatsApp's
+    // Android intent handler prioritizes text and drops the PDF file attachment if text is present.
+    // By passing only files and title, WhatsApp is forced to open as a Document Share with the PDF attached!
+    const canShareFiles =
+      typeof navigator !== "undefined" &&
+      !!navigator.canShare &&
+      navigator.canShare({ files: [file] });
+
+    if (canShareFiles) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: title || fileName,
+        });
+        onSuccess?.("PDF shared successfully!");
+        return true;
+      } catch (err: any) {
+        if (err.name === "AbortError") {
+          // User closed share dialog intentionally
+          return false;
+        }
+        console.warn("Native file share encountered an issue, using fallback:", err);
+      }
+    }
+
+    // 2. Fallback for Desktop Browsers (e.g. WhatsApp Web)
+    // Desktop WhatsApp Web cannot accept binary files directly via URL parameters.
+    // Therefore:
+    // a) Automatically download the PDF to user's computer
+    // b) Formulate WhatsApp text with invoice summary + direct online PDF link
+    // c) Open WhatsApp Web
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+
+    let finalMessage = text || `*SEYON UPVC WINDOWS & DOORS*\n📄 ${fileName}`;
+    if (publicUrl) {
+      finalMessage += `\n\n📥 *Download / View Official PDF:*\n${publicUrl}`;
+    }
+
+    const waUrl = getWhatsAppUrl(phone, finalMessage);
+    if (typeof window !== "undefined") {
+      window.open(waUrl, "_blank");
+    }
+
+    onSuccess?.("PDF downloaded! WhatsApp opened to send invoice.");
+    return true;
+  } catch (err: any) {
+    console.error("PDF share error:", err);
+    onError?.(err);
+    return false;
+  }
 }

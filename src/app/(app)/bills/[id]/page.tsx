@@ -79,12 +79,15 @@ export default function BillViewPage() {
 
       const text = `*SEYON UPVC WINDOWS & DOORS*\n📄 *Tax Invoice:* ${bill.invoiceNumber}\n👤 *Customer:* ${custName}\n📅 *Date:* ${dateStr}\n💰 *Grand Total:* ₹${Number(bill.grandTotal).toFixed(2)}\n✅ *Status:* ${bill.status === "PAID" ? "Paid in Full" : bill.status}\n\nThank you for choosing Seyon UPVC! Please find your invoice attached.`;
 
+      const publicUrl = typeof window !== "undefined" ? `${window.location.origin}/view/bill/${id}` : "";
+
       await sharePdfFile({
         element: docRef.current,
         fileName,
         title: `${bill.invoiceNumber} - Seyon UPVC`,
         text,
         phone,
+        publicUrl,
         onSuccess: (msg) => showToast(msg, "success"),
         onError: (err) => {
           console.error("PDF share error:", err);

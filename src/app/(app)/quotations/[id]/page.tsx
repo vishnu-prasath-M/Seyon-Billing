@@ -79,12 +79,15 @@ export default function QuotationViewPage() {
 
       const text = `*SEYON UPVC WINDOWS & DOORS*\n📋 *Quotation / Estimate:* ${quotation.quotationNumber}\n👤 *Customer:* ${custName}\n📅 *Date:* ${dateStr}\n💰 *Grand Total:* ₹${Number(quotation.grandTotal).toFixed(2)}\n⏳ *Validity:* ${quotation.expiryDays || 15} Days\n\nThank you for choosing Seyon UPVC! Please find your quotation attached.`;
 
+      const publicUrl = typeof window !== "undefined" ? `${window.location.origin}/view/quotation/${id}` : "";
+
       await sharePdfFile({
         element: docRef.current,
         fileName,
         title: `${quotation.quotationNumber} - Seyon UPVC`,
         text,
         phone,
+        publicUrl,
         onSuccess: (msg) => showToast(msg, "success"),
         onError: (err) => {
           console.error("PDF share error:", err);
