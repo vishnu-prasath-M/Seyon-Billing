@@ -91,7 +91,7 @@ export default function QuotationViewPage() {
         onSuccess: (msg) => showToast(msg, "success"),
         onError: (err) => {
           console.error("PDF share error:", err);
-          showToast("Opening WhatsApp...", "info");
+          showToast("Opening WhatsApp with quotation link...", "info");
         },
       });
     } catch (err: any) {

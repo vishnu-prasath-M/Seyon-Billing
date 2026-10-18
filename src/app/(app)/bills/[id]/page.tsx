@@ -91,7 +91,7 @@ export default function BillViewPage() {
         onSuccess: (msg) => showToast(msg, "success"),
         onError: (err) => {
           console.error("PDF share error:", err);
-          showToast("Opening WhatsApp...", "info");
+          showToast("Opening WhatsApp with invoice link...", "info");
         },
       });
     } catch (err: any) {
