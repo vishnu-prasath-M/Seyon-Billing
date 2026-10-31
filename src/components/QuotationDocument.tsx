@@ -59,6 +59,7 @@ export interface DocumentData {
   grandTotal: number;
   notes?: string;
   settings?: {
+    name?: string;
     companyName?: string;
     tagline?: string;
     logoUrl?: string;
@@ -98,7 +99,8 @@ export default function QuotationDocument({ data }: { data: DocumentData }) {
   const docDateLabel = isInvoice ? "Invoice Date:" : "Quotation Date:";
 
   const company = data.settings || {};
-  const companyName = company.companyName || "SEYON UPVC WINDOWS & DOORS";
+  const rawCompanyName = company.companyName || company.name || "SEYON UPVC";
+  const companyName = rawCompanyName.replace(/\s*WINDOWS\s*&\s*DOORS/gi, "").trim() || "SEYON UPVC";
   const companyAddress = [
     company.address || "SF No 245, Avinashi Road, Civil Aerodrome Post",
     [company.city || "Coimbatore", company.state || "Tamil Nadu", company.pincode || "641014"]
@@ -162,8 +164,6 @@ export default function QuotationDocument({ data }: { data: DocumentData }) {
         "8. CNC corner cleaning machine: delivery time- 25 days.",
       ];
 
-  const websiteDisplay = (company.website || "WWW.SEYONUPVC.COM").toUpperCase();
-
   return (
     <div className="bg-white text-[#111827] font-sans text-[11px] leading-relaxed p-4 sm:p-8 md:p-12 max-w-[850px] mx-auto border border-neutral-300 shadow-sm print:border-none print:shadow-none print:p-0 print:max-w-none print:m-0 print:text-[10.5px]">
       {/* 1. Top Type Marker */}
@@ -197,14 +197,6 @@ export default function QuotationDocument({ data }: { data: DocumentData }) {
             <div>
               <span className="font-semibold text-neutral-900">GSTIN: </span>
               <span className="font-mono">{company.gstin || "33AABCS1234A1Z5"}</span>
-            </div>
-            <div>
-              <span className="font-semibold text-neutral-900">Email: </span>
-              <span>{company.email || "seyonupvc@gmail.com"}</span>
-            </div>
-            <div>
-              <span className="font-semibold text-neutral-900">{websiteDisplay}: </span>
-              <span className="text-[#087ea4] font-medium">{websiteDisplay}</span>
             </div>
           </div>
         </div>

@@ -77,7 +77,7 @@ export default function BillViewPage() {
           })
         : "";
 
-      const text = `*SEYON UPVC WINDOWS & DOORS*\n📄 *Tax Invoice:* ${bill.invoiceNumber}\n👤 *Customer:* ${custName}\n📅 *Date:* ${dateStr}\n💰 *Grand Total:* ₹${Number(bill.grandTotal).toFixed(2)}\n✅ *Status:* ${bill.status === "PAID" ? "Paid in Full" : bill.status}\n\nThank you for choosing Seyon UPVC! Please find your invoice attached.`;
+      const text = `*SEYON UPVC*\n📄 *Tax Invoice:* ${bill.invoiceNumber}\n👤 *Customer:* ${custName}\n📅 *Date:* ${dateStr}\n💰 *Grand Total:* ₹${Number(bill.grandTotal).toFixed(2)}\n✅ *Status:* ${bill.status === "PAID" ? "Paid in Full" : bill.status}\n\nThank you for choosing Seyon UPVC! Please find your invoice attached.`;
 
       const publicUrl = typeof window !== "undefined" ? `${window.location.origin}/view/bill/${id}` : "";
 

@@ -125,7 +125,7 @@ export default function PublicQuotationViewPage() {
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
           <div>
             <span className="text-[10px] uppercase tracking-wider font-extrabold text-[#087ea4] block">
-              Seyon UPVC Windows & Doors
+              Seyon UPVC
             </span>
             <h1 className="text-sm sm:text-base font-bold text-slate-900 leading-tight">
               Quotation / Estimate #{quotation.quotationNumber}

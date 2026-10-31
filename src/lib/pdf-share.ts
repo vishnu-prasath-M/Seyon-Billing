@@ -111,7 +111,7 @@ export async function sharePdfFile({
     }
   }
 
-  let finalMessage = text || `*SEYON UPVC WINDOWS & DOORS*\n📄 ${fileName}`;
+  let finalMessage = text || `*SEYON UPVC*\n📄 ${fileName}`;
   if (publicUrl) {
     finalMessage += `\n\n📥 *Download / View Official PDF:*\n${publicUrl}`;
   }

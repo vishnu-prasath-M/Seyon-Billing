@@ -37,14 +37,14 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     }
 
     const settings = (await prisma.companySettings.findFirst()) || {
-      name: "SEYON UPVC WINDOWS & DOORS",
+      name: "SEYON UPVC",
       address: "SF No 245, Avinashi Road, Civil Aerodrome Post",
       city: "Coimbatore",
       state: "Tamil Nadu",
       pincode: "641014",
       phone: "+91 98422 12345",
-      email: "seyonupvc@gmail.com",
-      website: "www.seyonupvc.com",
+      email: "",
+      website: "",
       gstin: "33AABCS1234A1Z5",
       bankName: "State Bank of India",
       bankAccount: "38920192831",
@@ -136,7 +136,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       })
       .join("");
 
-    const websiteDisplay = (settings.website || "WWW.SEYONUPVC.COM").toUpperCase();
+    const companyTitle = (settings.name || "SEYON UPVC").replace(/\s*WINDOWS\s*&\s*DOORS/gi, "").trim() || "SEYON UPVC";
 
     const html = `<!DOCTYPE html>
 <html>
@@ -379,12 +379,10 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
   <div class="header">
     <img src="${logoBase64}" alt="Seyon UPVC Logo" class="logo-img" />
     <div>
-      <h1 class="company-title">${settings.name}</h1>
+      <h1 class="company-title">${companyTitle}</h1>
       <div class="company-addr">${settings.address || "SF No 245, Avinashi Road, Civil Aerodrome Post, Coimbatore, Tamil Nadu - 641014"}</div>
       <div class="company-meta">
         <div><strong>GSTIN:</strong> ${settings.gstin || "33AABCS1234A1Z5"}</div>
-        <div><strong>Email:</strong> ${settings.email || "seyonupvc@gmail.com"}</div>
-        <div><strong>${websiteDisplay}:</strong> <span style="color: #087ea4;">${websiteDisplay}</span></div>
       </div>
     </div>
   </div>

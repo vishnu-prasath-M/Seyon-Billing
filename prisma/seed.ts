@@ -73,14 +73,14 @@ async function main() {
   if (!existingSettings) {
     await prisma.companySettings.create({
       data: {
-        name: "SEYON UPVC WINDOWS & DOORS",
+        name: "SEYON UPVC",
         address: "SF No 245, Avinashi Road, Civil Aerodrome Post",
         city: "Coimbatore",
         state: "Tamil Nadu",
         pincode: "641014",
         phone: "+91 98422 12345",
-        email: "seyonupvc@gmail.com",
-        website: "www.seyonupvc.com",
+        email: "",
+        website: "",
         gstin: "33AABCS1234A1Z5",
         pan: "AABCS1234A",
         bankName: "State Bank of India",
